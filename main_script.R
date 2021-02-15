@@ -30,3 +30,5 @@ refreshData <- function(){
   }
 }
 
+#update on start
+refreshData()
