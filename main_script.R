@@ -32,3 +32,25 @@ refreshData <- function(){
 
 #update on start
 refreshData()
+
+#reading the world
+confirmedData <- read.csv("data/time_series_covid19_confirmed_global.csv")
+deceasedData <- read.csv("data/time_series_covid19_deaths_global.csv")
+recoveredData <- read.csv("data/time_series_covid19_recovered_global.csv")
+
+#date correction 
+n_confirmed <- names(confirmedData)[5:ncol(confirmedData)]
+date_correct <- gsub("[a-zA-Z]","",n_confirmed)
+names(confirmedData)[5:ncol(confirmedData)] <- date_correct
+
+n_deceased <- names(deceasedData)[5:ncol(deceasedData)]
+date_correct <- gsub("[a-zA-Z]","",n_deceased)
+names(deceasedData)[5:ncol(deceasedData)] <- date_correct
+
+n_recovered <- names(recoveredData)[5:ncol(recoveredData)]
+date_correct <- gsub("[a-zA-Z]","",n_recovered)
+names(recoveredData)[5:ncol(recoveredData)] <- date_correct
+
+#latest data  
+latest_date <- as.Date(names(confirmedData)[ncol(confirmedData)],format = "%m.%d.%y") 
+changed_date <- file.info('data/CVD19_data')$ctime
