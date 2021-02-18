@@ -54,3 +54,37 @@ names(recoveredData)[5:ncol(recoveredData)] <- date_correct
 #latest data  
 latest_date <- as.Date(names(confirmedData)[ncol(confirmedData)],format = "%m.%d.%y") 
 changed_date <- file.info('data/CVD19_data')$ctime
+
+#data evolution by country
+confirmedSub <- confirmedData %>% 
+                pivot_longer(names_to = "date",cols = 5:ncol(confirmedData)) %>%
+                group_by(`Province.State`,`Country.Region`,date,Lat,Long) %>%
+                summarise("confirmed" = sum(value,na.rm = TRUE))
+
+deceasedSub <- deceasedData %>% 
+                pivot_longer(names_to = "date",cols = 5:ncol(deceasedData)) %>%
+                group_by(`Province.State`,`Country.Region`,date,Lat,Long) %>%
+                summarise("deceased" = sum(value,na.rm = TRUE))
+
+evolutionData <- confirmedSub %>%
+  full_join(deceasedSub) %>%
+  ungroup() %>%
+  mutate(date=as.Date(date,"%m.%d.%y")) %>%
+  arrange(date) %>%
+  group_by(`Province.State`,`Country.Region`,Lat,Long) %>%
+  mutate(
+    recovered = lag(confirmed,14,default = 0) - deceased,
+    recovered = ifelse(recovered>0,recovered,0),
+    active = confirmed - recovered - deceased) %>%
+  pivot_longer(names_to = "var",cols=c(confirmed,recovered,deceased,active)) %>%
+  ungroup()
+
+evolutionData <- evolutionData %>%
+  group_by(`Province.State`,`Country.Region`) %>%
+  mutate(value_new = value - lag(value, 4, default = 0)) %>%
+  ungroup()
+
+#clear environment
+remove(confirmedData,confirmedSub,recoveredData,deceasedData,deceasedSub)
+remove(n_recovered,n_deceased,n_confirmed,date_correct)
+
