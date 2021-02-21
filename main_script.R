@@ -88,3 +88,44 @@ evolutionData <- evolutionData %>%
 remove(confirmedData,confirmedSub,recoveredData,deceasedData,deceasedSub)
 remove(n_recovered,n_deceased,n_confirmed,date_correct)
 
+#downloading population data
+population <- wb_data(country = "countries_only", indicator = "SP.POP.TOTL", start_date = 2018, end_date = 2020) %>%
+  select(country, SP.POP.TOTL) %>%
+  rename(population = SP.POP.TOTL)
+
+countryNamesPop <- c("Brunei Darussalam", "Congo, Dem. Rep.", "Congo, Rep.", "Czech Republic","Egypt, Arab Rep.", "Iran, Islamic Rep.", "Korea, Rep.", "St. Lucia", "West Bank and Gaza", "Russian Federation","Slovak Republic", "United States", "St. Vincent and the Grenadines", "Venezuela, RB")
+
+countryNamesDat<- c("Brunei", "Congo (Kinshasa)", "Congo (Brazzaville)", "Czechia", "Egypt", "Iran", "Korea, South",
+                    "Saint Lucia", "occupied Palestinian territory", "Russia", "Slovakia", "US", "Saint Vincent and the Grenadines", "Venezuela")
+
+population <- population[complete.cases(population),]
+need <- seq(2,432,2)
+population <- population[need,]
+population[which(population$country %in% countryNamesPop), "country"] <- countryNamesDat
+noDataCountries <- data.frame(
+  country    = c("Cruise Ship", "Guadeloupe", "Guernsey", "Holy See", "Jersey", "Martinique", "Reunion", "Taiwan*"),
+  population = c(3700, 395700, 63026, 800, 106800, 376480, 859959, 23780452)
+)
+population <- bind_rows(population, noDataCountries)
+evolutionData <- evolutionData %>%left_join(population, by = c("Country.Region" = "country"))
+
+#latest data
+data_to_date <- function(inputDate){
+  evolutionData[which(evolutionData$date == inputDate),] %>%
+  distinct() %>%
+  pivot_wider(id_cols = c("Province.State", "Country.Region", "date", "Lat", "Long", "population"), names_from = var, values_from = value) %>%
+  filter(confirmed > 0|recovered > 0|deceased > 0|active > 0)  
+}
+
+latest_data <- data_to_date(max(evolutionData$date))
+
+#subsetting the top5 countries
+
+top5_countries <- evolutionData %>%
+  filter(var=="active", date==latest_date) %>%
+  group_by(`Country.Region`) %>%
+  summarise(value = sum(value, na.rm = TRUE)) %>%
+  arrange(desc(value)) %>%
+  top_n(5) %>%
+  select(`Country.Region`) %>%
+  pull()
